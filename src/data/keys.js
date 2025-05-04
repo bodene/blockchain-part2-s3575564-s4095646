@@ -1,0 +1,17 @@
+// PKG’s master RSA params
+export const p = 1004162036461488639338597000466705179253226703n;
+export const q = 950133741151267522116252385927940618264103623n;
+export const e = 973028207197278907211n;
+
+// Inventory identities
+export const inventoryIDs = {
+    A: 126n,
+    B: 127n,
+    C: 128n,
+    D: 129n,
+};
+
+// Procurement Officer’s RSA params
+export const p_PO = 1080954735722463992988394149602856332100628417n;
+export const q_PO = 1158106283320086444890911863299879973542293243n;
+export const e_PO = 106506253943651610547613n;
