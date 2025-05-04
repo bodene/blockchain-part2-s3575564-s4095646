@@ -1,0 +1,30 @@
+{
+  "name": "blockchain-part2-s3575564-s4095646",
+  "version": "1.0.0",
+  "description": "Part 2 Task 3 Multi Signature Query Verification &amp; Secure Delivery",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/frontend/app.js",
+    "dev": "nodemon src/frontend/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bodene-rmit/blockchain-part2-s3575564-s4095646.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/bodene-rmit/blockchain-part2-s3575564-s4095646/issues"
+  },
+  "homepage": "https://github.com/bodene-rmit/blockchain-part2-s3575564-s4095646#readme",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
