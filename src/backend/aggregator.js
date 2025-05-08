@@ -1,4 +1,6 @@
-import { n } from './pkg.js';
+import { modPow, n } from './pkg.js';
+import crypto from 'crypto';
+import { inventoryIDs, e } from '../data/keys.js';
 import { signForNode } from './inventoryNode.js';
 
 // List of inventory Node identifiers
@@ -39,4 +41,13 @@ export async function aggregateSignatures(itemId) {
     quantity: firstQuantity };
 }
 
+/// TODO: Verify the aggregated signature
+export function verifyAggregateSignature(itemId, quantity, aggSig, nodeIds) {
+    const message = `${itemId}:${quantity}`;
+    const h = BigInt('0x' + crypto.createHash('sha256').update(message).digest('hex'));
 
+    const expected = modPow(h, e, n);
+    const actual = BigInt(aggSig);
+
+    return expected === actual;
+}

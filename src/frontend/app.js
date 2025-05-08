@@ -1,10 +1,9 @@
 import '../data/keys.js';
 import express from 'express';
-import { aggregateSignatures } from '../backend/aggregator.js';
+import { aggregateSignatures, verifyAggregateSignature } from '../backend/aggregator.js';
 import { encryptDataRSA } from '../backend/rsa.js';
 import { decryptDataOfficer, n_PO } from '../backend/officer.js';
 import { e_PO } from '../data/keys.js';
-
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -116,6 +115,7 @@ app.post('/query', async (req, res) => {
             quantity: quantity,
           },
           aggSig: aggSig,
+          signatureNodes: partialSigs.map(ps => ps.nodeId),
         }
 
         // Log each partial signature separately (consensus)
@@ -126,7 +126,8 @@ app.post('/query', async (req, res) => {
         });
 
         // Log the query and aggregated signature
-        actionLogs.push(`[PKG] >> [QUERY] Item ${message.item.itemId}: quantity=${message.item.quantity}, aggSig=${message.aggSig}`); 
+        actionLogs.push(`[PKG] >> [QUERY] Item ${message.item.itemId}: quantity=${message.item.quantity}`);
+        actionLogs.push(`[PKG] >> [QUERY] aggSig=${message.aggSig}`);
     } catch (err) {
         actionLogs.push(`Error during query submission: ${err.message}`);
     }
@@ -160,9 +161,10 @@ app.post('/encrypt', async (req, res) => {
 app.post('/decrypt', (req, res) => {
     const { message, encryptedMessage } = req.body;
 
+    // Convert string to BigInt
     let encryptedBigInt;
     try {
-      encryptedBigInt = BigInt(encryptedMessage); // Convert string to BigInt
+      encryptedBigInt = BigInt(encryptedMessage);
     } catch (err) {
       actionLogs.push(`Error converting encryptedMessage to BigInt: ${err.message}`);
       return renderPage(res, encryptedMessage, message, 'Decryption failed');
@@ -178,6 +180,20 @@ app.post('/decrypt', (req, res) => {
         }
 
         actionLogs.push(`[DECRYPTED] >> [QUERY] Item ${decryptedData.itemId}: quantity=${decryptedData.quantity}, aggSig=${JSON.parse(message).aggSig}`);
+
+        try {
+          // Verify the aggregate signature
+          const isValid = verifyAggregateSignature(
+              decryptedData.itemId,
+              decryptedData.quantity,
+              JSON.parse(message).aggSig,
+              JSON.parse(message).signatureNodes
+          );
+          actionLogs.push(`Aggregate signature verification: ${isValid ? 'valid' : 'invalid'}`);
+        } catch (err) {
+            actionLogs.push(`Error during aggregate signature verification: ${err.message}`);
+        }
+
     } catch (err) {
         actionLogs.push(`Error during decryption: ${err.message}`);
     }
