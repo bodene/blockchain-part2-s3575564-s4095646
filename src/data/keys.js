@@ -15,3 +15,10 @@ export const inventoryIDs = {
 export const p_PO = 1080954735722463992988394149602856332100628417n;
 export const q_PO = 1158106283320086444890911863299879973542293243n;
 export const e_PO = 106506253943651610547613n;
+
+// Random number for each Inventory
+export const randomNoInventoryA = 621n;
+export const randomNoInventoryB = 721n;
+export const randomNoInventoryC = 821n;
+export const randomNoInventoryD = 921n;
+
