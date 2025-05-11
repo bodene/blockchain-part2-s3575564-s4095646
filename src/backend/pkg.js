@@ -46,6 +46,13 @@ export function modPow(base, exponent, modulus) {
     return result;
 }
 
+// Display Logs for Set up
+export const setupLogs = [
+    `n = p * q = ${p} * ${q} = ${n}`,
+    `φ = (p - 1) * (q - 1) = ${p - 1n} * ${q - 1n} = ${phi}`,
+    `d = e⁻¹ mod φ = ${d}`
+];
+
 // Derive node-specific private keys (identity-based)
 export function extractPrivateKey(nodeId) {
     const idNum = BigInt(nodeId);
