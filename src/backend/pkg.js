@@ -48,18 +48,21 @@ export function modPow(base, exponent, modulus) {
 
 // Display Logs for Set up
 export const setupLogs = [
+    `p = ${p}`,
+    `q = ${q}`,
+    `e = ${e}`,
     `n = p * q = ${p} * ${q} = ${n}`,
     `φ = (p - 1) * (q - 1) = ${p - 1n} * ${q - 1n} = ${phi}`,
     `d = e⁻¹ mod φ = ${d}`
 ];
 
-// Derive node-specific private keys (identity-based)
+// Derive node-specific secret keys (identity-based)
 export function extractPrivateKey(nodeId) {
     const idNum = BigInt(nodeId);
     return modPow(idNum, d, n);
 }
 
-// Derive and export map  of nodes private keys for inventories
+// Derive and export map  of nodes secret keys for inventories
 export const nodePrivateKeys = {
     A: extractPrivateKey(inventoryIDs.A),
     B: extractPrivateKey(inventoryIDs.B),
