@@ -1,71 +1,38 @@
-import {p, q, e, inventoryIDs } from '../data/keys.js';
+import { modInverse, modPow } from './utils.js';
+import { inventoryIDs, p, q, e } from '../data/keys.js';
 
-// Compute RSA Modulus and totient
-export const n = p * q;
+const actionLogs = [];
+
+// Key Generation
+const n = p * q;
 const phi = (p - 1n) * (q - 1n);
+const d = modInverse(e, phi);
 
-/*
- * Finds the greatest common divisor (g) of a and b,
- * and computes coefficients x and y such that:
- * a*x + b*y = g
- */
-export function egcd(a, b) {
-    if (b === 0n) {
-        // Base case: gcd(a, 0) = a
-        return { g: a, x: 1n, y: 0n };
-    }
-    // Recurse on smaller problem
-    const { g, x: x1, y: y1 } = egcd(b, a % b);
-    // Back-substitute to get current coefficients
-    return {
-        g,
-        x: y1,
-        y: x1 - (a / b) * y1
-    };
-}
-
-// Compute modular Inverse: x^(-1) mod m
-export function modInverse(x, m) {
-    const { g, x: inv } = egcd(x, m);
-    if (g !== 1n) throw new Error("No modular inverse exists");
-    return (inv % m + m) % m;
-}
-
-// Compute PKG's private key
-export const d = modInverse(e, phi);
-
-export function modPow(base, exponent, modulus) {
-    if (modulus === 1n) return 0n;
-    let result = 1n;
-    base = base % modulus;
-    while (exponent > 0n) {
-        if (exponent & 1n) result = (result * base) % modulus;
-        exponent >>= 1n;
-        base = (base * base) % modulus;
-    }
-    return result;
-}
-
-// Display Logs for Set up
+// Logging setup
 export const setupLogs = [
-    `p = ${p}`,
-    `q = ${q}`,
-    `e = ${e}`,
-    `n = p * q = ${p} * ${q} = ${n}`,
-    `φ = (p - 1) * (q - 1) = ${p - 1n} * ${q - 1n} = ${phi}`,
-    `d = e⁻¹ mod φ = ${d}`
+    `<b>[SETUP PKG GENERATION] p </b>= ${p}`,
+    `<b>[SETUP PKG GENERATION] q </b>= ${q}`,
+    `<b>[SETUP PKG GENERATION] e </b>= ${e}`,
+    `<b>[SETUP PKG GENERATION] n = p * q =</b> ${p} * ${q} = ${n}`,
+    `<b>[SETUP PKG GENERATION] φ = (p - 1) * (q - 1) =</b> ${p-1n} * ${q-1n} = ${phi}`,
+    `<b>[SETUP PKG GENERATION] d = e⁻¹ mod φ </b>= ${e}^-1 mod ${phi} = ${d}`,
+    `<b>[PKG PUBLIC KEY] (e, n) =</b> (${e}, ${n}`,
+    `<b>[PKG PRIVATE KEY] (d, n) =</b> (${d}, ${n}`,
 ];
+setupLogs.forEach(line => actionLogs.push(line));
 
-// Derive node-specific secret keys (identity-based)
-export function extractPrivateKey(nodeId) {
-    const idNum = BigInt(nodeId);
-    return modPow(idNum, d, n);
+// Generate secret keys (g-values)
+const g = {};
+for (const node in inventoryIDs) {
+    g[node] = modPow(inventoryIDs[node], d, n);
+    actionLogs.push(
+        `<b>[PKG SIGNS SIGNER IDENTITY FOR SECRET KEY][Node ${node}] g_${node} = i_${node} ^ (d) mod n </b> = ${inventoryIDs[node]}^${d} mod ${n} = ${g[node]}`,
+        `<b>[SEND] PKG sends ${node} Secret Key (g)</b>`
+    );
 }
 
-// Derive and export map  of nodes secret keys for inventories
-export const nodePrivateKeys = {
-    A: extractPrivateKey(inventoryIDs.A),
-    B: extractPrivateKey(inventoryIDs.B),
-    C: extractPrivateKey(inventoryIDs.C),
-    D: extractPrivateKey(inventoryIDs.D),
-};
+// Public/private keys of PKG
+const pkgPublicKey = { e, n };
+const pkgPrivateKey = { d, n };
+
+export { n, pkgPublicKey, pkgPrivateKey, g, actionLogs };
