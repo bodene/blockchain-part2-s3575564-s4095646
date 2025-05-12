@@ -45,7 +45,7 @@ function renderPage(res, encryptedMessage = null, message = null, decryptedData 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Step 2: User Query Submission</title>
+  <title>User Query Submission</title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1em; }
     form { margin-bottom: 2em; padding: 1em; border: 1px solid #ddd;
