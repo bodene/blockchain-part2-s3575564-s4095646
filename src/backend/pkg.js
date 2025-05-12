@@ -1,5 +1,9 @@
 import { modInverse, modPow } from './utils.js';
-import { inventoryIDs, p, q, e } from '../data/keys.js';
+import { inventoryIDs } from '../data/keys.js';
+
+export const p = 1004162036461488639338597000466705179253226703n;
+export const q = 950133741151267522116252385927940618264103623n;
+export const e = 973028207197278907211n;
 
 const actionLogs = [];
 
@@ -31,8 +35,7 @@ for (const node in inventoryIDs) {
     );
 }
 
-// Public/private keys of PKG
+// Public key of PKG
 const pkgPublicKey = { e, n };
-const pkgPrivateKey = { d, n };
 
-export { n, pkgPublicKey, pkgPrivateKey, g, actionLogs };
+export { n, pkgPublicKey, g, actionLogs };

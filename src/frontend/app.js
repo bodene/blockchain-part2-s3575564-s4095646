@@ -1,9 +1,8 @@
 import express from 'express';
 import { aggregateSignature, verifySignature } from '../backend/aggregator.js';
 import { encryptDataRSA } from '../backend/rsa.js';
-import { decryptDataOfficer, n_PO, d_PO } from '../backend/officer.js';
-import { actionLogs as pkgLogs, pkgPublicKey } from '../backend/pkg.js';
-import { e_PO } from '../data/keys.js';
+import { decryptDataOfficer, n_PO, e_PO } from '../backend/officer.js';
+import { actionLogs as pkgLogs } from '../backend/pkg.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));

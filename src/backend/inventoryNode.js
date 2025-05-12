@@ -1,10 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { n } from './pkg.js';
+import { n, e } from './pkg.js';
 import { modPow } from './utils.js'
 import {
-    e,
     randomNoInventoryA,
     randomNoInventoryB,
     randomNoInventoryC,

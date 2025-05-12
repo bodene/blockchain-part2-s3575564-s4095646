@@ -1,7 +1,10 @@
 // Task 4: Procurement Officer entity
-import { p_PO, q_PO, e_PO } from '../data/keys.js';
 import { modInverse } from './utils.js';
 import { decryptDataRSA } from './rsa.js';
+
+export const p_PO = 1080954735722463992988394149602856332100628417n;
+export const q_PO = 1158106283320086444890911863299879973542293243n;
+export const e_PO = 106506253943651610547613n;
 
 // Compute RSA Modulus and totient
 export const n_PO = p_PO * q_PO;

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { fetchAndVerifyQuantities, signForNode, confirmConsensus } from './inventoryNode.js';
-import { inventoryIDs, e } from '../data/keys.js';
-import { g, n, actionLogs } from './pkg.js';
+import { inventoryIDs } from '../data/keys.js';
+import { g, n, e } from './pkg.js';
 import { modPow } from './utils.js';
 
 /**
