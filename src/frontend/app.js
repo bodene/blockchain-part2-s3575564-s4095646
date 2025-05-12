@@ -1,8 +1,8 @@
-import '../data/keys.js';
 import express from 'express';
-import { aggregateSignatures, verifyAggregateSignature } from '../backend/aggregator.js';
+import { aggregateSignature, verifySignature } from '../backend/aggregator.js';
 import { encryptDataRSA } from '../backend/rsa.js';
-import { decryptDataOfficer, n_PO } from '../backend/officer.js';
+import { decryptDataOfficer, n_PO, d_PO } from '../backend/officer.js';
+import { actionLogs as pkgLogs, pkgPublicKey } from '../backend/pkg.js';
 import { e_PO } from '../data/keys.js';
 
 const app = express();
@@ -35,8 +35,8 @@ function renderPage(res, encryptedMessage = null, message = null, decryptedData 
     const rawItemHtml = message
         ? `<div class="raw-item">
             <h4>Raw Item Details:</h4>
-            <p>Item ID: ${JSON.parse(message)?.item?.itemId}</p>
-            <p>Quantity: ${JSON.parse(message)?.item?.quantity}</p>
+            <p>Item ID: ${JSON.parse(message)?.m?.itemId}</p>
+            <p>Quantity: ${JSON.parse(message)?.m?.quantity}</p>
             <input type="hidden" name="message" value='${message}' />
           </div>`
         : '';
@@ -96,112 +96,109 @@ function renderPage(res, encryptedMessage = null, message = null, decryptedData 
 // GET UI
 app.get('/', (req, res) => renderPage(res));
 
-// Handle multi-signature query submission
+pkgLogs.forEach(log => actionLogs.push(log));
+
 app.post('/query', async (req, res) => {
+    const { itemId } = req.body;
     let message = null;
-    const { itemId } = req.body; // Get message from the request body
+
     try {
-        // Call aggregator and capture result
-        const result = await aggregateSignatures(itemId);
-        const { quantity, aggSig, partialSigs } = result;
+        const { actionLogs: aggLogs, multiSignature, fullMessage } =
+            await aggregateSignature(itemId);
+        aggLogs.forEach(line => actionLogs.push(line));
 
-        // console.log('AGG RESULT:', result);
-        actionLogs.push(`>> [QUERY] Raw result: ${JSON.stringify(result)}`);
-
-        // Create message object for query
-        message = {
-          item: {
-            itemId: itemId,
-            quantity: quantity,
-          },
-          aggSig: aggSig,
-          signatureNodes: partialSigs.map(ps => ps.nodeId),
-        }
-
-        // Log each partial signature separately (consensus)
-        partialSigs.forEach(ps => {
-            actionLogs.push(
-                `   partial from ${ps.nodeId}: sig=${ps.partialSig}`
-            );
-        });
-
-        // Log the query and aggregated signature
-        actionLogs.push(`[PKG] >> [QUERY] Item ${message.item.itemId}: quantity=${message.item.quantity}`);
-        actionLogs.push(`[PKG] >> [QUERY] aggSig=${message.aggSig}`);
+        const { m: { itemId: id, quantity }, t, s } = fullMessage;
+        const payload = { m: { itemId: id, quantity }, t: t.toString(), s: s.toString() };
+        message = JSON.stringify(payload);
     } catch (err) {
-        actionLogs.push(`Error during query submission: ${err.message}`);
+        actionLogs.push(`<b>Error during query submission:</b> ${err.message}`);
     }
-    // Re-render UI
-    renderPage(res, null, message ? JSON.stringify(message) : null, null);
+
+    renderPage(res, null, message, null);
 });
 
-// Encrypt endpoint
+// Handle encryption (only encrypt the message m)
 app.post('/encrypt', async (req, res) => {
-    let encryptedMessage = null;
-    const { message } = req.body; // Get itemId from the request body
+    const { message } = req.body;
+    let encryptedM = null;
+
     try {
-        // Convert message to string (pulling itemId and quantity)
-        const messageStringItem = JSON.parse(message).item;
-        const messageString = JSON.stringify(messageStringItem);
+        // Extract only m from the payload
+        const { m } = JSON.parse(message);
+        const mString = JSON.stringify(m);
 
-        // Encrypt message object from pkg with Officer's public key
-        encryptedMessage = encryptDataRSA(messageString, e_PO, n_PO);
-
-        actionLogs.push(`Perfoming RSA encryption on message: ${messageString} with Officer's public key`);
-        actionLogs.push(`e=${e_PO}, n=${n_PO}`);
-
-        actionLogs.push(`Encrypted message: ${JSON.stringify(encryptedMessage.toString())}, aggSig=${JSON.parse(message).aggSig}`); // Log the encrypted message
+        encryptedM = encryptDataRSA(mString, e_PO, n_PO);
+        actionLogs.push(`<b>[ENCRYPT]</b> Encrypting m only: ${mString}`);
+        actionLogs.push(`<b>[ENCRYPT]</b> Ciphertext: ${encryptedM.toString()}`);
     } catch (err) {
-        actionLogs.push(`Error during encryption: ${err.message}`);
+        actionLogs.push(`<b>Error during encryption:</b> ${err.message}`);
     }
-    renderPage(res, encryptedMessage.toString(), message, null);
-  });
 
-// Decrypt endpoint
-app.post('/decrypt', (req, res) => {
+    // Pass encrypted m and original message for decryption step
+    renderPage(res, encryptedM ? encryptedM.toString() : null, message, null);
+});
+
+// Handle decryption and verification (Server Side)
+app.post('/decrypt', async (req, res) => {
     const { message, encryptedMessage } = req.body;
+    let decryptedM = null;
 
-    // Convert string to BigInt
-    let encryptedBigInt;
     try {
-      encryptedBigInt = BigInt(encryptedMessage);
+        // Decrypt the encrypted m using Officer's private key
+        const encryptedBigInt = BigInt(encryptedMessage);
+        decryptedM = decryptDataOfficer(encryptedBigInt);
+        actionLogs.push(
+            `<b>[DECRYPT]</b> Decrypted m: {${decryptedM.itemId}, ${decryptedM.quantity}}`
+        );
     } catch (err) {
-      actionLogs.push(`Error converting encryptedMessage to BigInt: ${err.message}`);
-      return renderPage(res, encryptedMessage, message, 'Decryption failed');
+        actionLogs.push(`<b>Error during decryption:</b> ${err.message}`);
+        return renderPage(res, encryptedMessage, message, 'Decryption failed');
     }
 
-    let decryptedData = null;
+    // Parse the original payload to extract multi-signature
+    let parsed = {};
     try {
-        // Decrypt the encrypted data using Officer's private key
-        decryptedData = decryptDataOfficer(encryptedBigInt);
+        parsed = JSON.parse(message);
+    } catch (_) {}
+    const { t, s } = parsed;
+    actionLogs.push(`<b>[DECRYPT]</b> Received multiSig bundle: {${t}, ${s}}`);
 
-        if (!decryptedData) {
-          throw new Error('Decryption failed: No data returned');
-        }
-
-        actionLogs.push(`[DECRYPTED] >> [QUERY] Item ${decryptedData.itemId}: quantity=${decryptedData.quantity}, aggSig=${JSON.parse(message).aggSig}`);
-
-        try {
-          // Verify the aggregate signature
-          const isValid = verifyAggregateSignature(
-              decryptedData.itemId,
-              decryptedData.quantity,
-              JSON.parse(message).aggSig,
-              JSON.parse(message).signatureNodes
-          );
-          actionLogs.push(`Aggregate signature verification: ${isValid ? 'valid' : 'invalid'}`);
-        } catch (err) {
-            actionLogs.push(`Error during aggregate signature verification: ${err.message}`);
-        }
-
+    // Verify the aggregate signature
+    try {
+        const { verification, verificationLogs } = verifySignature(
+            { t: BigInt(t), s: BigInt(s) },
+            { m: { itemId: decryptedM.itemId, quantity: decryptedM.quantity }, t: BigInt(t), s: BigInt(s) }
+        );
+        verificationLogs.forEach(log => actionLogs.push(log));
+        actionLogs.push(
+            `<b>[VERIFY RESULT]</b> signature is ${verification ? 'valid' : 'INVALID'}`
+        );
     } catch (err) {
-        actionLogs.push(`Error during decryption: ${err.message}`);
+        actionLogs.push(`<b>Error during verification:</b> ${err.message}`);
     }
 
-    // Send the decrypted data to UI
-  renderPage(res, encryptedMessage, message, decryptedData ? JSON.stringify(decryptedData) : 'Decryption failed');
-  });
+    // Re-render with the decrypted data shown
+    renderPage(
+        res,
+        encryptedMessage,
+        message,
+        JSON.stringify({ itemId: decryptedM.itemId, quantity: decryptedM.quantity })
+    );
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+
+// // Convert message to string (pulling itemId and quantity)
+// const messageStringItem = JSON.parse(message).item;
+// const messageString = JSON.stringify(messageStringItem);
+
+// // Encrypt message object from pkg with Officer's public key
+// encryptedMessage = encryptDataRSA(messageString, e_PO, n_PO);
+
+// actionLogs.push(`Perfoming RSA encryption on message: ${messageString} with Officer's public key`);
+// actionLogs.push(`e=${e_PO}, n=${n_PO}`);
+
+// actionLogs.push(`Encrypted message: ${JSON.stringify(encryptedMessage.toString())}, aggSig=${JSON.parse(message).aggSig}`); // Log the encrypted message
