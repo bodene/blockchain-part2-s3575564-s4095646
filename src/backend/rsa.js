@@ -1,5 +1,5 @@
 // Task 4: RSA Encryption/Decryption
-import { modPow } from './pkg.js';
+import { modPow } from './utils.js';
 
 // Convert string to ASCII
 export function stringToAscii(str) {
