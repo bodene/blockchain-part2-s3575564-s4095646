@@ -1,6 +1,6 @@
 // Task 4: Procurement Officer entity
 import { p_PO, q_PO, e_PO } from '../data/keys.js';
-import { modInverse } from './pkg.js';
+import { modInverse } from './utils.js';
 import { decryptDataRSA } from './rsa.js';
 
 // Compute RSA Modulus and totient
