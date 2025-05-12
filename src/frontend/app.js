@@ -76,7 +76,7 @@ function renderPage(res, encryptedMessage = null, message = null, decryptedData 
   </form>
 
   <form action="/decrypt" method="post">
-    <h2>Decrypt the Recieved Query with PKG (Officer Side)</h2>
+    <h2>Decrypt the Recieved Query with Officer's private key (Officer Side)</h2>
     ${encryptedHtml}
     <input type="hidden" name="message" value='${message}' />
     <input type="hidden" name="encryptedMessage" value="${encryptedMessage}" />
@@ -188,16 +188,3 @@ app.post('/decrypt', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-
-
-// // Convert message to string (pulling itemId and quantity)
-// const messageStringItem = JSON.parse(message).item;
-// const messageString = JSON.stringify(messageStringItem);
-
-// // Encrypt message object from pkg with Officer's public key
-// encryptedMessage = encryptDataRSA(messageString, e_PO, n_PO);
-
-// actionLogs.push(`Perfoming RSA encryption on message: ${messageString} with Officer's public key`);
-// actionLogs.push(`e=${e_PO}, n=${n_PO}`);
-
-// actionLogs.push(`Encrypted message: ${JSON.stringify(encryptedMessage.toString())}, aggSig=${JSON.parse(message).aggSig}`); // Log the encrypted message
